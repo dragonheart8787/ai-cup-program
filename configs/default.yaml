@@ -19,3 +19,40 @@ polygon:
 dataset_version: null
 input_modality: null
 resolution: null
+
+# --- P2 data pipeline ---------------------------------------------------------
+# No absolute machine paths are stored here. Set the environment variable
+# AICUP_DATA_ROOT (takes precedence) or fill dataset.data_root locally.
+# The competition data has a duplicated nesting level, so train_root / test_root
+# are configured separately, relative to data_root. Data is only ever read.
+dataset:
+  data_root: null
+  train_root: "9_16_train_set/9_16_train_set/train"
+  test_root: "9_30_test_set/9_30_test_set/test"
+  # Official files stay where they are; only their locations are configured.
+  make_submission_py: "9_16_train_set/9_16_train_set/make_submission.py"
+  sample_submission_json: "9_16_train_set/9_16_train_set/sample_submission.json"
+  test_images_csv: null          # official file not provided (NEED OFFICIAL FILE)
+
+ir_color:
+  colorized_threshold: 1.0       # mean(|R-G|)+mean(|G-B|); verified gray=0.0, colorized >= 28.8
+
+audit:
+  metadata_csv: data/metadata.csv
+  summary_md: data/audit_summary.md
+
+folds:
+  n_splits: 3
+  folds_csv: data/folds.csv
+  max_group_frac: 0.10
+  thumb_size: [64, 36]
+  low_info_mean: 15.0            # images darker than this are linked only under the strictest rule
+  # tried in order until the largest group is <= max_group_frac * n_pairs
+  presets:
+    - {phash_dist: 6, thumb_corr_min: 0.90, thumb_mad_max: 10.0}
+    - {phash_dist: 6, thumb_corr_min: 0.90, thumb_mad_max: 6.0}
+    - {phash_dist: 4, thumb_corr_min: 0.93, thumb_mad_max: 4.0}
+    - {phash_dist: 2, thumb_corr_min: 0.96, thumb_mad_max: 3.0}
+
+visualize:
+  out_dir: outputs/vis

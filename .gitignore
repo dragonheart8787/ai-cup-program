@@ -2,6 +2,9 @@
 data/*
 !data/README.md
 
+# Generated outputs
+outputs/
+
 # Model weights / checkpoints
 checkpoints/
 *.pt

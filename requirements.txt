@@ -4,6 +4,12 @@ opencv-python-headless
 pyyaml
 shapely
 pytest
+pillow
+imagehash
+scikit-learn
+scipy
+pandas
+matplotlib
 
 # Training stack: install on the local Windows machine, NOT pinned here.
 # torch / torchvision: pick the build matching your CUDA driver from the official PyTorch site.
