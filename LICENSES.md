@@ -36,3 +36,16 @@ weights is **UNKNOWN / NEED OFFICIAL FILE** (the rules document has not been upl
   and not submitting its code or weights would need confirmation from the organisers.
 - SegFormer is not a clean alternative: its checkpoint license is unverified and may be
   non-commercial (see table). Resolve both before choosing a final stack.
+
+## Ultralytics in this repo (update 2026-10-13)
+
+- Installed for the P2 baseline via `requirements-train.txt` (`ultralytics==8.4.176`, PyPI). License: **AGPL-3.0**.
+- Use: training and inference of `yolo11s-seg` (EO and IR models) for experiments and the baseline submission.
+- The pretrained `yolo11s-seg.pt` weights are downloaded by Ultralytics from its GitHub releases; their license is
+  assumed AGPL-3.0 as well (not verified).
+- **The competition rules are still UNKNOWN / NEED OFFICIAL FILE.** Per the rules, the use of Ultralytics (AGPL-3.0),
+  including its pretrained weights, must be disclosed in the final report. Re-read the rules before submitting source code
+  or weights; do not include Ultralytics code in a submitted source tree until that is settled.
+- Ultralytics is not in `requirements.txt`; `src/` modules other than `src/dataset/yolo_export.py`'s consumers and the
+  training/prediction scripts must stay importable without it.
+- PyTorch / torchvision: BSD-3-Clause style license (not re-verified here).

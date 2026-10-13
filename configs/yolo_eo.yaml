@@ -1,0 +1,16 @@
+# EO baseline (fold 0). Everything the training run uses is defined here.
+modality: EO
+fold: 0
+seed: 42
+model: yolo11s-seg.pt        # Ultralytics pretrained weights (AGPL-3.0, see LICENSES.md)
+imgsz: 1280                  # EO is 1920x1080 with small objects; lower batch before lowering imgsz
+batch: 4                     # batch 8 at imgsz 1280 needed ~15.9 GiB (spilled past 12 GB VRAM, ~8 s/it); 4 fits
+epochs: 30
+smoke_epochs: 2
+patience: 10                 # early stopping
+amp: true                    # fp16 AMP (bf16 is not used so it can be reproduced on a Colab T4)
+workers: 4                   # Windows DataLoader workers
+max_det: 300
+device: 0
+plots: false                 # avoids font downloads
+deterministic: true

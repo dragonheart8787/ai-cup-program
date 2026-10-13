@@ -1,0 +1,9 @@
+# Baseline submission settings, chosen on the fold-0 validation sweeps (scripts/eval_oof.py, PROXY metric).
+# conf = best DEFECT F1@IoU0.5 (only defect boxes are submitted). method = best all-F1@.5 + @.75 in the comparison.
+# reason texts are PLACEHOLDERS (src/submission/reasons.py).
+EO:
+  method: approx4
+  conf: 0.65
+IR:
+  method: approx4
+  conf: 0.75

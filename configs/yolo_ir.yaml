@@ -1,0 +1,16 @@
+# IR baseline (fold 0). Training IR images are gray; used as 3 channels as-is.
+modality: IR
+fold: 0
+seed: 42
+model: yolo11s-seg.pt        # Ultralytics pretrained weights (AGPL-3.0, see LICENSES.md)
+imgsz: 640                   # native 640x512
+batch: 16
+epochs: 30
+smoke_epochs: 2
+patience: 10
+amp: true
+workers: 4
+max_det: 300
+device: 0
+plots: false
+deterministic: true

@@ -1,0 +1,8 @@
+# Training stack (local Windows, RTX 5070 Ti / Blackwell sm_120). Keep out of requirements.txt.
+# Install torch FIRST with the official CUDA 12.8 index, then the rest:
+#   python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+#   python -m pip install -r requirements-train.txt
+# Versions below are the ones verified on 2026-10-13 (CUDA matmul + fp16 AMP forward/backward OK).
+# torch==2.11.0+cu128
+# torchvision==0.26.0+cu128
+ultralytics==8.4.176   # AGPL-3.0, see LICENSES.md (must be disclosed in the final report)
