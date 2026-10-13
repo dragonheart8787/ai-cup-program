@@ -25,7 +25,7 @@ from src.dataset.paths import DatasetPaths, resolve_repo_path  # noqa: E402
 from src.postprocess.pipeline import raw_to_boxes  # noqa: E402
 from src.postprocess.validate import validate_polygon  # noqa: E402
 from src.submission.reasons import PLACEHOLDER_NOTE, most_central_sentence  # noqa: E402
-from src.submission.writer import DEFECTS, build_entries, write_submission  # noqa: E402
+from src.submission.writer import DEFECTS, build_entries, build_entries_with_panels, write_submission  # noqa: E402
 from src.utils.config import load_config  # noqa: E402
 from src.utils.logging_setup import setup_logging  # noqa: E402
 
@@ -40,7 +40,7 @@ def placeholder_reason(paths: DatasetPaths, modality: str) -> str:
     return most_central_sentence(texts)
 
 
-def validate_file(path: Path) -> dict[str, int]:
+def validate_file(path: Path, allow_panel: bool = False) -> dict[str, int]:
     data = json.loads(path.read_text(encoding="utf-8"))
     bad: Counter = Counter()
     n = 0
@@ -52,6 +52,12 @@ def validate_file(path: Path) -> dict[str, int]:
             res = validate_polygon(np.asarray(o["points"]), w, h, max_vertices=100)
             for i in res.issues:
                 bad[i] += 1
+            if o["label"] == "solar_panel":
+                if not allow_panel:
+                    bad["panel_in_defect_only"] += 1
+                if "reason" in o:
+                    bad["panel_with_reason"] += 1
+                continue
             if not o.get("reason", "").strip():
                 bad["empty_reason"] += 1
             if o["label"] != DEFECTS[mod]:
@@ -67,6 +73,8 @@ def main() -> int:
     ap.add_argument("--test-images", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--config", default="configs/submission.yaml")
+    ap.add_argument("--variant", choices=("defect", "defect_panel"), default="defect",
+                    help="defect = v1 (defects only); defect_panel = v2 (adds solar_panel at <MOD>.panel_conf)")
     ap.add_argument("--default-config", default="configs/default.yaml")
     args = ap.parse_args()
     setup_logging("INFO")
@@ -88,9 +96,16 @@ def main() -> int:
         drops[mod] = Counter()
         for key, entry in cache["images"].items():
             boxes = raw_to_boxes(entry, s["method"], float(s["conf"]), drops[mod])
-            by_key[key] = build_entries(boxes, mod, reason, entry["w"], entry["h"])
+            if args.variant == "defect":
+                by_key[key] = build_entries(boxes, mod, reason, entry["w"], entry["h"])
+            else:
+                if s.get("panel_conf") is None:
+                    raise ValueError(f"{args.config}: {mod}.panel_conf is not set")
+                panels = [b for b in raw_to_boxes(entry, s["method"], float(s["panel_conf"]), drops[mod]) if b.label == "solar_panel"]
+                by_key[key] = build_entries_with_panels([b for b in boxes if b.label != "solar_panel"], panels, mod, reason,
+                                                        entry["w"], entry["h"])
     write_submission(args.out, by_key, expected)
-    rep = validate_file(Path(args.out))
+    rep = validate_file(Path(args.out), allow_panel=args.variant == "defect_panel")
     print("own validation:", rep, "| dropped by post-processing:", {k: dict(v) for k, v in drops.items()})
     problems = {k: v for k, v in rep.items() if k != "_objects"}
     if problems:

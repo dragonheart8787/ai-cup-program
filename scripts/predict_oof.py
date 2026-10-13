@@ -38,9 +38,13 @@ def _load_rgb(path: Path) -> np.ndarray:
         return np.asarray(im.convert("RGB"))
 
 
-def make_loader(path: Path, modality: str, thr: float, ir_sim: bool):
+def make_loader(path: Path, modality: str, thr: float, ir_sim: bool, gain: float | None = None, gamma: float | None = None):
     def load() -> np.ndarray:
         rgb = _load_rgb(path)
+        if gain is not None:  # brightness-shift robustness test (val only): multiply, clip to 255
+            rgb = np.clip(rgb.astype(np.float64) * gain, 0, 255).round().astype(np.uint8)
+        if gamma is not None:  # out = 255 * (x / 255) ** gamma
+            rgb = np.round(255.0 * (rgb.astype(np.float64) / 255.0) ** gamma).astype(np.uint8)
         if modality == "IR":
             if ir_sim:
                 rgb = np.repeat(simulate_colorized_roundtrip(rgb)[..., None], 3, axis=2)
@@ -58,6 +62,8 @@ def main() -> int:
     ap.add_argument("--target", choices=("val", "test"), default="val")
     ap.add_argument("--conf", type=float, default=0.05)
     ap.add_argument("--ir-sim", action="store_true")
+    ap.add_argument("--gain", type=float, help="val-only robustness test: multiply pixel values")
+    ap.add_argument("--gamma", type=float, help="val-only robustness test: gamma curve on pixel values")
     ap.add_argument("--default-config", default="configs/default.yaml")
     args = ap.parse_args()
     setup_logging("INFO")
@@ -66,6 +72,8 @@ def main() -> int:
     mod, fold = cfg["modality"], int(cfg["fold"])
     if args.ir_sim and (mod != "IR" or args.target != "val"):
         raise SystemExit("--ir-sim is only for IR validation")
+    if (args.gain or args.gamma) and args.target != "val":
+        raise SystemExit("--gain/--gamma are for validation images only")
     import torch
     from ultralytics import YOLO
 
@@ -77,7 +85,7 @@ def main() -> int:
     if args.target == "val":
         folds = pd.read_csv(resolve_repo_path(base["folds"]["folds_csv"]))
         sel = [it for it in build_items(paths, folds, mod, fold) if it.split == "val"]
-        items = [(it.stem, make_loader(it.image, mod, thr, args.ir_sim)) for it in sel]
+        items = [(it.stem, make_loader(it.image, mod, thr, args.ir_sim, args.gain, args.gamma)) for it in sel]
     else:
         items = [(f"test/{mod}/image/{s}.jpg", make_loader(paths.image_dir("test", mod) / f"{s}.jpg", mod, thr, False))
                  for s in paths.list_stems("test", mod)]
@@ -87,7 +95,7 @@ def main() -> int:
     raw = predict_raw(model, items, CLASS_NAMES[mod], imgsz=int(cfg["imgsz"]), conf=args.conf, max_det=int(cfg["max_det"]),
                       batch=int(cfg["batch"]), device=cfg["device"])
     meta = {"modality": mod, "fold": fold, "target": args.target, "weights": args.weights, "weights_sha256": file_sha256(args.weights),
-            "conf": args.conf, "imgsz": cfg["imgsz"], "ir_sim": args.ir_sim, "config_hash": config_hash(cfg),
+            "conf": args.conf, "imgsz": cfg["imgsz"], "ir_sim": args.ir_sim, "gain": args.gain, "gamma": args.gamma, "config_hash": config_hash(cfg),
             "n_images": len(raw), "n_instances": sum(len(v["preds"]) for v in raw.values())}
     out = work_root(base) / "cache" / f"{mod}_fold{fold}_{args.target}_{args.tag}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -98,7 +106,7 @@ def main() -> int:
         "dataset_version": f"folds.csv:{file_sha256(resolve_repo_path(base['folds']['folds_csv']))[:12]}",
         "fold": fold, "seed": cfg["seed"], "model": "yolo11s-seg", "checkpoint_sha256": meta["weights_sha256"],
         "input_modality": mod, "resolution": cfg["imgsz"], "postprocess": "raw-cache",
-        "notes": f"predict {args.target} tag={args.tag} conf>={args.conf} ir_sim={args.ir_sim} instances={meta['n_instances']} cache={out.name}",
+        "notes": f"predict {args.target} tag={args.tag} conf>={args.conf} ir_sim={args.ir_sim} gain={args.gain} gamma={args.gamma} instances={meta['n_instances']} cache={out.name}",
     })
     print(json.dumps(meta))
     return 0

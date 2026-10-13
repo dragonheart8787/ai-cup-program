@@ -4,6 +4,8 @@
 EO:
   method: approx4
   conf: 0.65
+  panel_conf: 0.80   # v2 only: best solar_panel F1@.5 on fold-0 val (0.985)
 IR:
   method: approx4
   conf: 0.75
+  panel_conf: 0.85   # v2 only: best solar_panel F1@.5 on fold-0 val (0.969)
