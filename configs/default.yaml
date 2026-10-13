@@ -1,0 +1,21 @@
+# Spec-independent defaults. Anything that depends on the official competition
+# files stays null until those files are available.
+seed: 42
+
+paths:
+  data_root: data
+  checkpoint_dir: checkpoints
+  experiments_csv: experiments/experiments.csv
+
+logging:
+  level: INFO
+
+polygon:
+  max_vertices: 200          # validity-check limit, tune once the official format is known
+  approx_epsilon_ratio: 0.01 # approxPolyDP epsilon = ratio * contour perimeter
+  min_area: 1.0
+
+# TBD from official files
+dataset_version: null
+input_modality: null
+resolution: null

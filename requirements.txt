@@ -1,0 +1,11 @@
+# Core (spec-independent skeleton). Python >= 3.11
+numpy
+opencv-python-headless
+pyyaml
+shapely
+pytest
+
+# Training stack: install on the local Windows machine, NOT pinned here.
+# torch / torchvision: pick the build matching your CUDA driver from the official PyTorch site.
+# transformers: needed for SegFormer / Qwen3-VL.
+# ultralytics: AGPL-3.0 -- read LICENSES.md before adding it to a submitted codebase.

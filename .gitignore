@@ -1,0 +1,25 @@
+# Competition data (never commit; see data/README.md)
+data/*
+!data/README.md
+
+# Model weights / checkpoints
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
