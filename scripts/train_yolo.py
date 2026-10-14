@@ -31,6 +31,7 @@ def main() -> int:
     ap.add_argument("--config", required=True)
     ap.add_argument("--default-config", default="configs/default.yaml")
     ap.add_argument("--smoke", action="store_true", help="run smoke_epochs epochs and tag the run '_smoke'")
+    ap.add_argument("--resume", action="store_true", help="continue an interrupted run from <work>/runs/<tag>/weights/last.pt")
     ap.add_argument("--batch", type=int, help="override batch (OOM handling only; logged in notes)")
     args = ap.parse_args()
     setup_logging("INFO")
@@ -42,22 +43,29 @@ def main() -> int:
     from ultralytics import YOLO
 
     mod, fold = cfg["modality"], int(cfg["fold"])
-    data = dataset_dir(base, mod, fold) / "data.yaml"
+    variant = cfg.get("variant")
+    data = dataset_dir(base, mod, fold, variant) / "data.yaml"
     if not data.is_file():
         raise FileNotFoundError(f"{data} missing; run scripts/export_yolo.py --modality {mod} --fold {fold}")
     seed_everything(int(cfg["seed"]))
-    tag = f"{mod}_fold{fold}" + ("_smoke" if args.smoke else "")
+    tag = f"{mod}_fold{fold}" + (f"_{variant}" if variant else "") + ("_smoke" if args.smoke else "")
     epochs = int(cfg["smoke_epochs"] if args.smoke else cfg["epochs"])
     runs = work_root(base) / "runs"
     torch.cuda.reset_peak_memory_stats()
     t0 = time.time()
-    model = YOLO(cfg["model"])
-    model.train(
-        data=str(data), epochs=epochs, imgsz=int(cfg["imgsz"]), batch=int(cfg["batch"]), seed=int(cfg["seed"]),
-        deterministic=bool(cfg["deterministic"]), amp=bool(cfg["amp"]), workers=int(cfg["workers"]),
-        patience=int(cfg["patience"]), max_det=int(cfg["max_det"]), device=cfg["device"], plots=bool(cfg["plots"]),
-        project=str(runs), name=tag, exist_ok=True, pretrained=True,
-    )
+    if args.resume:
+        last = runs / tag / "weights" / "last.pt"
+        if not last.is_file():
+            raise FileNotFoundError(last)
+        YOLO(str(last)).train(resume=True)
+    else:
+        model = YOLO(cfg["model"])
+        model.train(
+            data=str(data), epochs=epochs, imgsz=int(cfg["imgsz"]), batch=int(cfg["batch"]), seed=int(cfg["seed"]),
+            deterministic=bool(cfg["deterministic"]), val=bool(cfg.get("val", True)), amp=bool(cfg["amp"]),
+            workers=int(cfg["workers"]), patience=int(cfg["patience"]), max_det=int(cfg["max_det"]), device=cfg["device"],
+            plots=bool(cfg["plots"]), project=str(runs), name=tag, exist_ok=True, pretrained=True,
+        )
     elapsed = time.time() - t0
     peak_alloc = torch.cuda.max_memory_allocated() / 2**30
     peak_resv = torch.cuda.max_memory_reserved() / 2**30
@@ -69,7 +77,7 @@ def main() -> int:
     ck = ck_dir / f"{tag}.pt"
     shutil.copy2(best, ck)
     note = (f"train {tag}: epochs={epochs} batch={cfg['batch']} workers={cfg['workers']} elapsed_s={elapsed:.0f} "
-            f"peak_alloc_GiB={peak_alloc:.2f} peak_reserved_GiB={peak_resv:.2f} model={cfg['model']}")
+            f"peak_alloc_GiB={peak_alloc:.2f} peak_reserved_GiB={peak_resv:.2f} model={cfg['model']} variant={variant} val={cfg.get('val', True)}")
     append_experiment(resolve_repo_path(base["paths"]["experiments_csv"]), {
         "git_commit": get_git_commit(repo_root()), "config_hash": config_hash(cfg),
         "dataset_version": f"folds.csv:{file_sha256(resolve_repo_path(base['folds']['folds_csv']))[:12]}",

@@ -18,5 +18,6 @@ def work_root(cfg: Mapping[str, Any], env: Mapping[str, str] | None = None) -> P
     return root
 
 
-def dataset_dir(cfg: Mapping[str, Any], modality: str, fold: int) -> Path:
-    return work_root(cfg) / modality / f"fold{fold}"
+def dataset_dir(cfg: Mapping[str, Any], modality: str, fold: int, variant: str | None = None) -> Path:
+    """<work>/<MOD>/fold<k> (original) or <work>/<MOD>_<variant>/fold<k> (e.g. offline-augmented train set)."""
+    return work_root(cfg) / (f"{modality}_{variant}" if variant else modality) / f"fold{fold}"

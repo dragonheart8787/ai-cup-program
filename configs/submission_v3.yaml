@@ -1,0 +1,11 @@
+﻿# v3 (augmented models EO_fold0_aug / IR_fold0_aug). Thresholds: lowest confidence whose fold-0 val F1@.5 is within 0.005 of the best
+# (v1/v2 used the plain argmax; the EO aug defect curve is flat 0.994 from 0.20 to 0.80 and only 1.000 at 0.95).
+# reason texts are PLACEHOLDERS (src/submission/reasons.py). PROXY selection, not official.
+EO:
+  method: approx4
+  conf: 0.20         # defect (crack) val F1 0.994
+  panel_conf: 0.30   # val panel F1 0.953
+IR:
+  method: approx4
+  conf: 0.50         # defect (hotspot) val F1 0.898
+  panel_conf: 0.85   # val panel F1 0.957

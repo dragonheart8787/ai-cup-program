@@ -1,0 +1,17 @@
+# IR augmented-data model (fold 0). Identical to configs/yolo_ir.yaml except dataset variant.
+modality: IR
+variant: aug                 # <work>/IR_aug/fold0 (35% of train images replaced by colorization round trips)
+fold: 0
+seed: 42
+model: yolo11s-seg.pt
+imgsz: 640
+batch: 16
+epochs: 30
+smoke_epochs: 2
+patience: 10
+amp: true
+workers: 4
+max_det: 300
+device: 0
+plots: false
+deterministic: true

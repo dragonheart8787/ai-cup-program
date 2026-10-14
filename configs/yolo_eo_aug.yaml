@@ -1,0 +1,18 @@
+# EO augmented-data model (fold 0). Identical to configs/yolo_eo.yaml except dataset variant and validation setting.
+modality: EO
+variant: aug                 # <work>/EO_aug/fold0 (offline augmented train set; val = original fold-0 val)
+fold: 0
+seed: 42
+model: yolo11s-seg.pt
+imgsz: 1280
+batch: 4
+epochs: 30
+smoke_epochs: 2
+patience: 10                 # inactive when val is false
+amp: true
+workers: 4
+max_det: 300
+device: 0
+plots: false
+deterministic: true
+val: false                   # no per-epoch validation (slow epochs seen in the baseline run); evaluate afterwards with scripts/eval_oof.py
