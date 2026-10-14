@@ -1,0 +1,10 @@
+﻿# v4a: old models (EO_fold0 / IR_fold0), recall-oriented defect thresholds; panel thresholds as in v2.
+# reason texts are PLACEHOLDERS. PROXY-based choice, not official.
+EO:
+  method: approx4
+  conf: 0.10         # crack
+  panel_conf: 0.80
+IR:
+  method: approx4
+  conf: 0.30         # hotspot
+  panel_conf: 0.85

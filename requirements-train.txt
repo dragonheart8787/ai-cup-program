@@ -6,3 +6,4 @@
 # torch==2.11.0+cu128
 # torchvision==0.26.0+cu128
 ultralytics==8.4.176   # AGPL-3.0, see LICENSES.md (must be disclosed in the final report)
+bert-score==0.3.13   # MIT; used only by scripts/select_reason_bertscore.py (downloads google-bert/bert-base-chinese, Apache-2.0)

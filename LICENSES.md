@@ -49,3 +49,13 @@ weights is **UNKNOWN / NEED OFFICIAL FILE** (the rules document has not been upl
 - Ultralytics is not in `requirements.txt`; `src/` modules other than `src/dataset/yolo_export.py`'s consumers and the
   training/prediction scripts must stay importable without it.
 - PyTorch / torchvision: BSD-3-Clause style license (not re-verified here).
+
+## BERTScore reason selection (update 2026-10-14)
+
+| resource | version | license | usage |
+|---|---|---|---|
+| `google-bert/bert-base-chinese` (Hugging Face) | revision `8f23c25b06e129b6c986331a13d8d025a92cf0ea` (page last modified 2025-07-03) | HF tag `license:apache-2.0` (model card text not read in full; verify before submission) | scoring model for `scripts/select_reason_bertscore.py`, CPU only, downloaded by `bert-score` |
+| `bert-score` (PyPI) | pip metadata 0.3.13 (module `__version__` reports 0.3.12) | MIT (pip metadata / classifier) | BERTScore-F1 computation |
+
+This is only a **proxy** for the text score: the official text-scoring model and language setting are not published
+(UNKNOWN / NEED OFFICIAL FILE). Default layer for `bert-base-chinese` as defined by `bert-score`; no baseline rescaling.

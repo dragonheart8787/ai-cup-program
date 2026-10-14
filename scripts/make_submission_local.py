@@ -73,6 +73,7 @@ def main() -> int:
     ap.add_argument("--test-images", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--config", default="configs/submission.yaml")
+    ap.add_argument("--reasons-json", help="json {\"EO\": ..., \"IR\": ...} or the output of select_reason_bertscore.py; replaces the char n-gram placeholder")
     ap.add_argument("--variant", choices=("defect", "defect_panel"), default="defect",
                     help="defect = v1 (defects only); defect_panel = v2 (adds solar_panel at <MOD>.panel_conf)")
     ap.add_argument("--default-config", default="configs/default.yaml")
@@ -91,7 +92,11 @@ def main() -> int:
         cache = json.loads(Path(cache_path).read_text(encoding="utf-8"))
         if cache["meta"]["modality"] != mod or cache["meta"]["target"] != "test":
             raise ValueError(f"{cache_path} is not a {mod} test cache")
-        reason = placeholder_reason(paths, mod)
+        if args.reasons_json:
+            rj = json.loads(Path(args.reasons_json).read_text(encoding="utf-8"))
+            reason = rj["classes"][mod]["selected"] if "classes" in rj else rj[mod]
+        else:
+            reason = placeholder_reason(paths, mod)
         logger.info("%s placeholder reason: %s | %s", mod, reason, PLACEHOLDER_NOTE)
         drops[mod] = Counter()
         for key, entry in cache["images"].items():
