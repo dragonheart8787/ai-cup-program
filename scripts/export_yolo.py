@@ -15,7 +15,7 @@ import pandas as pd  # noqa: E402
 
 from src.dataset.paths import DatasetPaths, resolve_repo_path  # noqa: E402
 from src.dataset.workroot import dataset_dir  # noqa: E402
-from src.dataset.yolo_export import build_items, export_items  # noqa: E402
+from src.dataset.yolo_export import build_full_items, build_items, export_items  # noqa: E402
 from src.utils.config import load_config  # noqa: E402
 from src.utils.logging_setup import setup_logging  # noqa: E402
 
@@ -25,14 +25,18 @@ def main() -> int:
     ap.add_argument("--config", default="configs/default.yaml")
     ap.add_argument("--modality", choices=("EO", "IR"), required=True)
     ap.add_argument("--fold", type=int, default=0)
+    ap.add_argument("--full", action="store_true", help="all 1046 pairs as train, val=train (API only); writes <work>/<MOD>_full/fold0")
     args = ap.parse_args()
     setup_logging("INFO")
     cfg = load_config(resolve_repo_path(args.config))
     paths = DatasetPaths.from_config(cfg)
     folds = pd.read_csv(resolve_repo_path(cfg["folds"]["folds_csv"]))
-    out = dataset_dir(cfg, args.modality, args.fold)
-    items = build_items(paths, folds, args.modality, args.fold)
-    counts = export_items(items, args.modality, out)
+    if args.full:
+        out = dataset_dir(cfg, args.modality, 0, "full")
+        counts = export_items(build_full_items(paths, folds, args.modality), args.modality, out, val_is_train=True)
+    else:
+        out = dataset_dir(cfg, args.modality, args.fold)
+        counts = export_items(build_items(paths, folds, args.modality, args.fold), args.modality, out)
     print(counts, out)
     return 0
 

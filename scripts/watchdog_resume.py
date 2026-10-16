@@ -55,7 +55,7 @@ def main() -> int:
     if args.fold is not None:
         cfg["fold"] = args.fold
     variant = cfg.get("variant")
-    tag = f"{cfg['modality']}_fold{int(cfg['fold'])}" + (f"_{variant}" if variant else "")
+    tag = cfg.get("run_name") or f"{cfg['modality']}_fold{int(cfg['fold'])}" + (f"_{variant}" if variant else "")
     runs = work_root(base) / "runs" / tag
     results = runs / "results.csv"
     last = runs / "weights" / "last.pt"

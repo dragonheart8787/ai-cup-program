@@ -1,0 +1,23 @@
+# IR FINAL model on ALL 1046 training pairs (no held-out data, no augmented data, no test images).
+# val points at the TRAIN images only to satisfy the Ultralytics API: val=train, NOT a generalisation metric, never used to pick weights.
+# Settings are identical to configs/yolo_ir.yaml except: dataset, patience (early stopping off), val (no per-epoch validation), final weights.
+modality: IR
+variant: full                # <work>/IR_full/fold0 (scripts/export_yolo.py --modality IR --full)
+run_name: IR_full            # runs/IR_full -> checkpoints/IR_full.pt
+fold: 0
+seed: 42
+model: yolo11s-seg.pt
+imgsz: 640
+batch: 16
+epochs: 30
+smoke_epochs: 2
+patience: 1000               # early stopping disabled: always run all 30 epochs
+amp: true
+workers: 4
+max_det: 300
+device: 0
+plots: false
+deterministic: true
+val: false                   # no per-epoch validation (the only validation is the API-mandated final pass on the TRAIN images)
+use_last: true               # take the FINAL epoch weights (last.pt)
+note: "val=train, only to satisfy the Ultralytics API; any val metric is NOT a generalisation metric; no weight selection"

@@ -86,6 +86,16 @@ def build_items(paths: DatasetPaths, folds: pd.DataFrame, modality: str, fold: i
     return items
 
 
+def build_full_items(paths: DatasetPaths, folds: pd.DataFrame, modality: str) -> list[Item]:
+    """ALL training pairs of one modality as train items (full-data final model; no held-out split)."""
+    suffix = f"_{modality}"
+    rows = folds[folds.sample_id.str.endswith(suffix)]
+    if rows.empty:
+        raise ValueError(f"no {modality} rows in folds table")
+    return [Item(sid[: -len(suffix)], paths.image_dir("train", modality) / f"{sid[: -len(suffix)]}.jpg",
+                 paths.label_dir(modality) / f"{sid[: -len(suffix)]}.json", "train") for sid in rows.sample_id]
+
+
 def _place_image(src: Path, dst: Path) -> str:
     if dst.exists():
         dst.unlink()
@@ -98,8 +108,12 @@ def _place_image(src: Path, dst: Path) -> str:
         return "copy"
 
 
-def export_items(items: list[Item], modality: str, out_dir: Path) -> dict[str, int]:
-    """Write images + labels + data.yaml; returns counts."""
+def export_items(items: list[Item], modality: str, out_dir: Path, val_is_train: bool = False) -> dict[str, int]:
+    """Write images + labels + data.yaml; returns counts.
+
+    ``val_is_train``: full-data final model. data.yaml points val at the TRAIN images only to satisfy the Ultralytics API;
+    any metric computed on it is not a generalisation metric and must not be used to select weights.
+    """
     from PIL import Image
 
     counts = {"train": 0, "val": 0, "shapes": 0, "hardlink": 0, "copy": 0}
@@ -117,7 +131,7 @@ def export_items(items: list[Item], modality: str, out_dir: Path) -> dict[str, i
         counts[_place_image(it.image, out_dir / "images" / it.split / f"{it.stem}.jpg")] += 1
         counts[it.split] += 1
         counts["shapes"] += len(lines)
-    data = {"path": str(out_dir), "train": "images/train", "val": "images/val",
+    data = {"path": str(out_dir), "train": "images/train", "val": "images/train" if val_is_train else "images/val",
             "names": dict(enumerate(CLASS_NAMES[modality]))}
     (out_dir / "data.yaml").write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
     logger.info("exported %s: %s", out_dir, counts)
