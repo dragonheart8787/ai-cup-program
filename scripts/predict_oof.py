@@ -26,7 +26,7 @@ from src.dataset.ir_color import apply_inferno, colorized_to_gray, is_colorized 
 from src.dataset.ir_sim import simulate_colorized_roundtrip  # noqa: E402
 from src.dataset.paths import DatasetPaths, repo_root, resolve_repo_path  # noqa: E402
 from src.dataset.workroot import work_root  # noqa: E402
-from src.dataset.yolo_export import CLASS_NAMES, build_items  # noqa: E402
+from src.dataset.yolo_export import CLASS_NAMES, build_full_items, build_items  # noqa: E402
 from src.utils.config import config_hash, load_config  # noqa: E402
 from src.utils.experiments import append_experiment, file_sha256, get_git_commit  # noqa: E402
 from src.utils.logging_setup import setup_logging  # noqa: E402
@@ -88,7 +88,7 @@ def main() -> int:
     ap.add_argument("--config", required=True)
     ap.add_argument("--weights", required=True)
     ap.add_argument("--tag", required=True)
-    ap.add_argument("--target", choices=("val", "test"), default="val")
+    ap.add_argument("--target", choices=("val", "test", "train_all"), default="val")
     ap.add_argument("--conf", type=float, default=0.05)
     ap.add_argument("--fold", type=int, help="override the fold in the config")
     ap.add_argument("--ir-sim", action="store_true")
@@ -125,7 +125,10 @@ def main() -> int:
     thr = float(base["ir_color"]["colorized_threshold"])
     tparams: dict = {}
     mm, irm = args.match_mean, args.ir_mode
-    if args.target == "val":
+    if args.target == "train_all":  # sanity check of a full-data model on its own training images (NOT a generalisation metric)
+        folds = pd.read_csv(resolve_repo_path(base["folds"]["folds_csv"]))
+        items = [(it.stem, make_loader(it.image, mod, thr, False, None, None, None, mm, irm, tparams, it.stem)) for it in build_full_items(paths, folds, mod)]
+    elif args.target == "val":
         folds = pd.read_csv(resolve_repo_path(base["folds"]["folds_csv"]))
         sel = [it for it in build_items(paths, folds, mod, fold) if it.split == "val"]
         plan = closeup_plan([it.stem for it in sel], int(cfg["seed"])) if args.closeup else {}

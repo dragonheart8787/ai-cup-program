@@ -29,9 +29,13 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--base", required=True)
     ap.add_argument("--new", required=True)
-    ap.add_argument("--changed", required=True, help="e.g. EO:crack or IR:hotspot")
+    ap.add_argument("--changed", help="e.g. EO:crack or IR:hotspot (the only class allowed to change, plus explained panel removals)")
+    ap.add_argument("--ignore-modality", choices=("EO", "IR"), help="verify that EVERY object of the other modality is identical; "
+                    "the ignored modality is only counted (it comes from a different model)")
     args = ap.parse_args()
-    cm, cl = args.changed.split(":")
+    if bool(args.changed) == bool(args.ignore_modality):
+        ap.error("give exactly one of --changed / --ignore-modality")
+    cm, cl = args.changed.split(":") if args.changed else ("", "")
     a = json.loads(Path(args.base).read_text(encoding="utf-8"))
     b = json.loads(Path(args.new).read_text(encoding="utf-8"))
     if set(a) != set(b):
@@ -45,12 +49,21 @@ def main() -> int:
         kb = {key_of(o): o for o in b[k]}
         added = [kb[x] for x in kb if x not in ka]
         removed = [ka[x] for x in ka if x not in kb]
+        if args.ignore_modality == mod:
+            for o in added:
+                stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])[2] += 1
+            for o in removed:
+                stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])[3] += 1
+            continue
+        if args.ignore_modality:  # the compared modality must be identical
+            for o in added + removed:
+                ok = False
+                print(f"FAIL: {mod}/{o['label']} differs in {k}")
+            continue
         for o in added:
-            s = stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])
-            s[2] += 1
+            stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])[2] += 1
         for o in removed:
-            s = stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])
-            s[3] += 1
+            stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])[3] += 1
         added_defects = [o for o in added if o["label"] == cl and mod == cm]
         for o in added:
             if (mod, o["label"]) != (cm, cl):
@@ -76,7 +89,9 @@ def main() -> int:
     print(f"| modality | label | base | new | added | removed | of which panel removals explained by the exclusion rule |\n|---|---|---|---|---|---|---|")
     for (mod, lab), s in sorted(stats.items()):
         print(f"| {mod} | {lab} | {s[0]} | {s[1]} | {s[2]} | {s[3]} | {s[4] if lab == 'solar_panel' else '-'} |")
-    print(f"\nverification: {'PASS' if ok else 'FAIL'} (only {cm}:{cl} changed; every other difference is an explained panel removal)")
+    what = (f"only {cm}:{cl} changed; every other difference is an explained panel removal" if args.changed
+            else f"every {'EO' if args.ignore_modality == 'IR' else 'IR'} object is identical; the {args.ignore_modality} part is only counted")
+    print(f"\nverification: {'PASS' if ok else 'FAIL'} ({what})")
     return 0 if ok else 1
 
 
