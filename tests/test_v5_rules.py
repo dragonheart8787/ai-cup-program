@@ -48,3 +48,18 @@ def test_compare_submissions_detects_unexpected_changes(tmp_path):
                                      capture_output=True, text=True, encoding="utf-8")
     assert run(b).returncode == 0 and "PASS" in run(b).stdout
     assert run(c).returncode == 1
+
+
+def test_compare_submissions_direction_remove(tmp_path):
+    panel = {"label": "solar_panel", "points": [[0, 0], [100, 0], [100, 100], [0, 100]]}
+    other = {"label": "solar_panel", "points": [[300, 0], [400, 0], [400, 100], [300, 100]]}
+    hot = {"label": "hotspot", "points": [[0, 0], [100, 0], [100, 100], [0, 100]], "reason": "x"}
+    a, b, c = tmp_path / "a.json", tmp_path / "b.json", tmp_path / "c.json"
+    base = lambda objs: {"test/EO/image/test_001.jpg": [], "test/IR/image/test_001.jpg": objs}
+    a.write_text(json.dumps(base([hot, other])), encoding="utf-8")
+    b.write_text(json.dumps(base([other, panel])), encoding="utf-8")   # hotspot removed, the suppressed panel comes back: allowed
+    c.write_text(json.dumps(base([panel])), encoding="utf-8")          # a panel disappeared: not allowed
+    run = lambda new: subprocess.run([sys.executable, str(SCRIPTS / "compare_submissions.py"), "--base", str(a), "--new", str(new),
+                                      "--changed", "IR:hotspot", "--direction", "remove"], capture_output=True, text=True, encoding="utf-8")
+    assert run(b).returncode == 0 and "PASS" in run(b).stdout
+    assert run(c).returncode == 1

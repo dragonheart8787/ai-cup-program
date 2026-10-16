@@ -30,6 +30,9 @@ def main() -> int:
     ap.add_argument("--base", required=True)
     ap.add_argument("--new", required=True)
     ap.add_argument("--changed", help="e.g. EO:crack or IR:hotspot (the only class allowed to change, plus explained panel removals)")
+    ap.add_argument("--direction", choices=("add", "remove"), default="add",
+                    help="add: the changed class may only gain boxes (lower threshold); remove: it may only lose boxes (higher threshold) and "
+                         "panels that reappear must overlap (IoU > 0.5) a removed defect (exclusion rule undone)")
     ap.add_argument("--ignore-modality", choices=("EO", "IR"), help="verify that EVERY object of the other modality is identical; "
                     "the ignored modality is only counted (it comes from a different model)")
     args = ap.parse_args()
@@ -64,6 +67,20 @@ def main() -> int:
             stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])[2] += 1
         for o in removed:
             stats.setdefault((mod, o["label"]), [0, 0, 0, 0, 0])[3] += 1
+        if args.direction == "remove":
+            removed_defects = [o for o in removed if o["label"] == cl and mod == cm]
+            for o in added:
+                if o["label"] == "solar_panel" and mod == cm and any(
+                        polygon_iou(np.asarray(o["points"]), np.asarray(d["points"])) > 0.5 for d in removed_defects):
+                    stats.setdefault((mod, "solar_panel"), [0, 0, 0, 0, 0])[4] += 1  # panel restored because the overlapping defect is gone
+                else:
+                    ok = False
+                    print(f"FAIL: unexplained added object {mod}/{o['label']} in {k}")
+            for o in removed:
+                if (mod, o["label"]) != (cm, cl):
+                    ok = False
+                    print(f"FAIL: unexpected removal {mod}/{o['label']} in {k}")
+            continue
         added_defects = [o for o in added if o["label"] == cl and mod == cm]
         for o in added:
             if (mod, o["label"]) != (cm, cl):
@@ -86,10 +103,10 @@ def main() -> int:
             s = stats.setdefault((mod, lab), [0, 0, 0, 0, 0])
             s[0] = sum(1 for k, v in a.items() if k.split("/")[1] == mod for o in v if o["label"] == lab)
             s[1] = sum(1 for k, v in b.items() if k.split("/")[1] == mod for o in v if o["label"] == lab)
-    print(f"| modality | label | base | new | added | removed | of which panel removals explained by the exclusion rule |\n|---|---|---|---|---|---|---|")
+    print(f"| modality | label | base | new | added | removed | panel changes explained by the exclusion rule (removed, or restored when --direction remove) |\n|---|---|---|---|---|---|---|")
     for (mod, lab), s in sorted(stats.items()):
         print(f"| {mod} | {lab} | {s[0]} | {s[1]} | {s[2]} | {s[3]} | {s[4] if lab == 'solar_panel' else '-'} |")
-    what = (f"only {cm}:{cl} changed; every other difference is an explained panel removal" if args.changed
+    what = ((f"only {cm}:{cl} changed; every other difference is an explained panel " + ("restoration" if args.direction == "remove" else "removal")) if args.changed
             else f"every {'EO' if args.ignore_modality == 'IR' else 'IR'} object is identical; the {args.ignore_modality} part is only counted")
     print(f"\nverification: {'PASS' if ok else 'FAIL'} ({what})")
     return 0 if ok else 1

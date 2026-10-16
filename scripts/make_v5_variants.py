@@ -5,6 +5,7 @@ defect with IoU > 0.5 dropped, placeholder reasons.
   v5a_eo010   : EO crack >= 0.10
   v5b_ir030   : IR hotspot >= 0.30
   v5c_ir_top2 : IR hotspot = (all boxes >= 0.75) U (per image the two highest-confidence boxes that are >= 0.30)
+  v5d_ir090   : IR hotspot >= 0.90 (a HIGHER threshold: defect boxes disappear and the panel boxes they suppressed come back)
 Because the panel/defect exclusion rule is re-applied, EO (v5a) or IR (v5b, v5c) solar_panel boxes that overlap a NEWLY added defect are
 removed; scripts/compare_submissions.py verifies that this is the only other difference. Files are written next to the other submissions,
 never over an existing file. Reason strings are the placeholders of v2/v4a (checked to be identical).
@@ -33,7 +34,8 @@ from src.postprocess.pipeline import raw_to_boxes  # noqa: E402
 from src.submission.writer import build_entries_with_panels, write_submission  # noqa: E402
 from src.utils.config import load_config  # noqa: E402
 
-VARIANTS = {"v5a_eo010": ("EO", "conf>=0.10"), "v5b_ir030": ("IR", "conf>=0.30"), "v5c_ir_top2": ("IR", "conf>=0.75 or top-2 with conf>=0.30")}
+VARIANTS = {"v5a_eo010": ("EO", "conf>=0.10"), "v5b_ir030": ("IR", "conf>=0.30"), "v5c_ir_top2": ("IR", "conf>=0.75 or top-2 with conf>=0.30"),
+            "v5d_ir090": ("IR", "conf>=0.90")}
 
 
 def pick(defects: list, rule: str, base_conf: float) -> list:
@@ -41,6 +43,8 @@ def pick(defects: list, rule: str, base_conf: float) -> list:
         return [b for b in defects if b.conf >= base_conf]
     if rule == "conf>=0.10":
         return [b for b in defects if b.conf >= 0.10]
+    if rule == "conf>=0.90":
+        return [b for b in defects if b.conf >= 0.90]
     if rule == "conf>=0.30":
         return [b for b in defects if b.conf >= 0.30]
     if rule == "conf>=0.75 or top-2 with conf>=0.30":
@@ -56,6 +60,7 @@ def main() -> int:
     ap.add_argument("--test-images", required=True)
     ap.add_argument("--v2", help="existing v2 file (for the reason-string check)")
     ap.add_argument("--v4a", help="existing v4a file (for the reason-string check)")
+    ap.add_argument("--only", nargs="+", choices=sorted(VARIANTS), help="build only these variants (default: all; existing files are never overwritten)")
     args = ap.parse_args()
     base = load_config(resolve_repo_path("configs/default.yaml"))
     sub = load_config(resolve_repo_path("configs/submission.yaml"))  # v2 thresholds
@@ -74,6 +79,8 @@ def main() -> int:
               "IR": json.loads((cd / "IR_fold0_test_run1.json").read_text(encoding="utf-8"))["images"]}
     out_dir = Path(args.out_dir)
     for vname, (changed_mod, rule) in VARIANTS.items():
+        if args.only and vname not in args.only:
+            continue
         out = out_dir / f"submission_{vname}.json"
         if out.exists():
             raise FileExistsError(f"{out} exists; refusing to overwrite")
