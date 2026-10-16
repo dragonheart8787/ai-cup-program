@@ -32,6 +32,7 @@ def main() -> int:
     ap.add_argument("--default-config", default="configs/default.yaml")
     ap.add_argument("--smoke", action="store_true", help="run smoke_epochs epochs and tag the run '_smoke'")
     ap.add_argument("--resume", action="store_true", help="continue an interrupted run from <work>/runs/<tag>/weights/last.pt")
+    ap.add_argument("--fold", type=int, help="override the fold in the config (tag, dataset dir and checkpoint name follow)")
     ap.add_argument("--batch", type=int, help="override batch (OOM handling only; logged in notes)")
     args = ap.parse_args()
     setup_logging("INFO")
@@ -39,6 +40,8 @@ def main() -> int:
     cfg = load_config(resolve_repo_path(args.config))
     if args.batch:
         cfg["batch"] = args.batch
+    if args.fold is not None:
+        cfg["fold"] = args.fold
     import torch
     from ultralytics import YOLO
 

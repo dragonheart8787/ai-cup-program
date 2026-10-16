@@ -64,6 +64,7 @@ def main() -> int:
     ap.add_argument("--tag", required=True)
     ap.add_argument("--target", choices=("val", "test"), default="val")
     ap.add_argument("--conf", type=float, default=0.05)
+    ap.add_argument("--fold", type=int, help="override the fold in the config")
     ap.add_argument("--ir-sim", action="store_true")
     ap.add_argument("--closeup", action="store_true", help="val-only: 30%% of images center-cropped (area 0.15-0.35) and zoomed back")
     ap.add_argument("--gain", type=float, help="val-only robustness test: multiply pixel values")
@@ -73,6 +74,8 @@ def main() -> int:
     setup_logging("INFO")
     base = load_config(resolve_repo_path(args.default_config))
     cfg = load_config(resolve_repo_path(args.config))
+    if args.fold is not None:
+        cfg["fold"] = args.fold
     mod, fold = cfg["modality"], int(cfg["fold"])
     if args.ir_sim and (mod != "IR" or args.target != "val"):
         raise SystemExit("--ir-sim is only for IR validation")
